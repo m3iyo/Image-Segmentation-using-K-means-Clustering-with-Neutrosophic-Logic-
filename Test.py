@@ -16,45 +16,30 @@ def neutrosophic_indeterminacy(mean_image, std_image, diff_image):
     indeterminacy_image = (std_image * diff_image) / np.maximum(std_image, diff_image)
     return indeterminacy_image
 
-def kmeans_plus_plus(data, k):
-    # Initialize empty centroids and distance matrix
-    centroids = []
-    distances = np.zeros((data.shape[0], data.shape[1]))
+def kmeans_clustering(data, k, max_iterations=10):
+    # Initialize centroids randomly
+    centroids = data[np.random.choice(data.shape[0], k, replace=False)]
 
-    # Randomly select the first centroid
-    centroid_index = np.random.randint(0, len(data))
-    centroids.append(data[centroid_index])
+    for _ in range(max_iterations):
+        # Calculate distances from data points to centroids
+        distances = np.linalg.norm(data[:, np.newaxis] - centroids, axis=-1)
 
-    # Select subsequent centroids based on probability proportional to squared distances
-    for _ in range(k - 1):
-        for i in range(len(data)):
-            squared_distances = np.sum((data[i] - centroids) ** 2, axis=1)
-            distances[i] = np.min(squared_distances)
+        # Assign each data point to the cluster with the nearest centroid
+        labels = np.argmin(distances, axis=-1)
 
-        # Calculate probabilities
-        probabilities = distances / np.sum(distances)
+        # Update centroids based on the mean of data points in each cluster
+        for i in range(k):
+            cluster_points = data[labels == i]
+            if len(cluster_points) > 0:
+                centroids[i] = np.mean(cluster_points, axis=0)
 
-        # Select the next centroid based on cumulative probabilities
-        cumulative_probabilities = np.cumsum(probabilities)
-        random_value = np.random.random()
-        for index, cumulative_probability in enumerate(cumulative_probabilities):
-            if cumulative_probability >= random_value:
-                centroid_index = index
-                break
-
-        # Check if centroid index is within valid range
-        if centroid_index >= len(data):
-            centroid_index = len(data) - 1
-
-        centroids.append(data[centroid_index])
-
-    return np.array(centroids), np.argmin(distances, axis=-1)
+    return labels
 
 def neutrosophic_clustering(truth_image, falsity_image, indeterminacy_image, k):
     neutrosophic_image = np.stack([truth_image, falsity_image, indeterminacy_image], axis=-1)
     neutrosophic_image_reshaped = neutrosophic_image.reshape((-1, 3))
 
-    cluster_assignments = kmeans_plus_plus(neutrosophic_image_reshaped, k)[1]
+    cluster_assignments = kmeans_clustering(neutrosophic_image_reshaped, k)
 
     cluster_assignments = cluster_assignments.reshape(truth_image.shape)
 
@@ -68,13 +53,23 @@ def refine_clusters(cluster_assignments, min_cluster_size):
 
         if len(cluster_pixels[0]) < min_cluster_size:
             neighboring_clusters = []
+            neighboring_cluster_distances = []
+
             for pixel in zip(*cluster_pixels):
                 neighbors = [(pixel[0] + i, pixel[1] + j) for i in range(-1, 2) for j in range(-1, 2)]
                 neighbors = [(x, y) for x, y in neighbors if 0 <= x < cluster_assignments.shape[0] and 0 <= y < cluster_assignments.shape[1] and cluster_assignments[x, y] != cluster_index]
                 neighboring_clusters.extend(cluster_assignments[x, y] for x, y in neighbors)
 
-            most_overlapping_cluster = np.argmax(np.bincount(neighboring_clusters))
-            refined_cluster_assignments[cluster_pixels] = most_overlapping_cluster
+                # Calculate average distances to neighboring clusters
+                for neighbor_cluster in neighboring_clusters:
+                    neighbor_cluster_pixels = np.where(cluster_assignments == neighbor_cluster)
+                    distances = np.linalg.norm(pixel - neighbor_cluster_pixels, axis=1)
+                    average_distance = np.mean(distances)
+                    neighboring_cluster_distances.append(average_distance)
+
+            # Merge with the neighboring cluster with the smallest average distance
+            most_overlapping_cluster = np.argmin(neighboring_cluster_distances)
+            refined_cluster_assignments[cluster_pixels] = neighboring_clusters[most_overlapping_cluster]
 
     return refined_cluster_assignments
 
@@ -83,13 +78,9 @@ def segment_image(refined_cluster_assignments):
     segmented_image = np.zeros((refined_cluster_assignments.shape[0], refined_cluster_assignments.shape[1], 3), dtype=np.uint8)
 
     # Assign color values to each segment based on cluster assignments
-    cluster_colors = np.zeros((np.max(refined_cluster_assignments) + 1, 3), dtype=np.uint8)
     for cluster_index in range(np.max(refined_cluster_assignments) + 1):
-        # Generate a unique color for each cluster
-        cluster_colors[cluster_index] = np.random.randint(0, 255, size=(3,))
-
-    for cluster_index, cluster_color in enumerate(cluster_colors):
         cluster_pixels = np.where(refined_cluster_assignments == cluster_index)
+        cluster_color = np.random.randint(0, 255, size=(3,))
         segmented_image[cluster_pixels] = cluster_color
 
     return segmented_image
@@ -126,6 +117,14 @@ def image_segmentation(image_path, k, min_cluster_size):
         # Segment the image based on refined cluster assignments
         segmented_image = segment_image(refined_cluster_assignments)
 
+        # Check the number of channels in the segmented image
+        if segmented_image.shape[2] <= 1:
+            # Image has no channels or only one channel (grayscale), skip grayscale conversion
+            pass
+        else:
+            # Convert the segmented image to grayscale
+            segmented_image = cv2.cvtColor(segmented_image, cv2.COLOR_BGR2GRAY)
+
         # Convert the segmented image to black and white
         segmented_image = cv2.threshold(segmented_image, 127, 255, cv2.THRESH_BINARY)[1]
 
@@ -143,9 +142,12 @@ def image_segmentation(image_path, k, min_cluster_size):
     except FileNotFoundError as e:
         print(f"Error opening image file: {e}")
 
+
 if __name__ == "__main__":
-    image_path = "image.jpg"
-    k = 2
-    min_cluster_size = 50
+    image_path = "image.jpg"  # Path to the image to be segmented
+    k = 3  # Number of clusters
+    min_cluster_size = 50  # Minimum cluster size
 
     image_segmentation(image_path, k, min_cluster_size)
+
+
