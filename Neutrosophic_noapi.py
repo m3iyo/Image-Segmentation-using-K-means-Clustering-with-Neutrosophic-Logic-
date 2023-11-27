@@ -64,15 +64,16 @@ def refine_clusters(cluster_assignments, min_cluster_size):
   return refined_cluster_assignments
 
 def segment_image(refined_cluster_assignments):
-  segmented_image = np.zeros_like(refined_cluster_assignments, dtype=np.uint8)
+    # Initialize an empty segmented image with 3 channels (BGR)
+    segmented_image = np.zeros((refined_cluster_assignments.shape[0], refined_cluster_assignments.shape[1], 3), dtype=np.uint8)
 
-  cluster_labels = {}
-  for cluster_index in range(np.max(refined_cluster_assignments) + 1):
-    cluster_label = len(cluster_labels)
-    cluster_labels[cluster_index] = cluster_label
-    segmented_image[refined_cluster_assignments == cluster_index] = cluster_label
+    # Assign color values to each segment based on cluster assignments
+    for cluster_index in range(np.max(refined_cluster_assignments) + 1):
+        cluster_pixels = np.where(refined_cluster_assignments == cluster_index)
+        cluster_color = np.random.randint(0, 255, size=(3,))
+        segmented_image[cluster_pixels] = cluster_color
 
-  return segmented_image
+    return segmented_image
 
 def image_segmentation(image_path, k, min_cluster_size):
     try:
