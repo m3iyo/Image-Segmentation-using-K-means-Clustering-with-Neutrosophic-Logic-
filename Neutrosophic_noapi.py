@@ -75,32 +75,35 @@ def segment_image(refined_cluster_assignments):
   return segmented_image
 
 def image_segmentation(image_path, k, min_cluster_size):
-  image = Image.open(image_path).convert("RGB")
-  image_np = np.array(image)
+    try:
+        image = Image.open(image_path).convert("RGB")
+        image_np = np.array(image)
 
-  gray_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
-  mean_image = gray_image / 255.0
+        gray_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
+        mean_image = gray_image / 255.0
 
-  falsity_image = neutrosophic_falsity(mean_image)
+        falsity_image = neutrosophic_falsity(mean_image)
 
-  std_image = np.std(image_np, axis=-1) / 255.0
-  diff_image = np.abs(mean_image - std_image)
-  indeterminacy_image = neutrosophic_indeterminacy(mean_image, std_image, diff_image)
+        std_image = np.std(image_np, axis=-1) / 255.0
+        diff_image = np.abs(mean_image - std_image)
+        indeterminacy_image = neutrosophic_indeterminacy(mean_image, std_image, diff_image)
 
-  cluster_assignments = neutrosophic_clustering(mean_image, falsity_image, indeterminacy_image, k)
-  refined_cluster_assignments = refine_clusters(cluster_assignments, min_cluster_size)
-  segmented_image = segment_image(refined_cluster_assignments)
+        cluster_assignments = neutrosophic_clustering(mean_image, falsity_image, indeterminacy_image, k)
+        refined_cluster_assignments = refine_clusters(cluster_assignments, min_cluster_size)
+        segmented_image = segment_image(refined_cluster_assignments)
 
-  plt.figure(figsize=(10, 5))
-  plt.subplot(1, 2, 1)
-  plt.imshow(image_np)
-  plt.title("Original Image")
+        plt.figure(figsize=(10, 5))
+        plt.subplot(1, 2, 1)
+        plt.imshow(image_np)
+        plt.title("Original Image")
 
-  plt.subplot(1, 2, 2)
-  plt.imshow(segmented_image, cmap="viridis")
-  plt.title("Segmented Image")
+        plt.subplot(1, 2, 2)
+        plt.imshow(segmented_image, cmap="viridis")
+        plt.title("Segmented Image")
 
-  plt.show()
+        plt.show()
+    except FileNotFoundError as e:
+        print(f"Error opening image file: {e}")
 
 if __name__ == "__main__":
   image_path = "image.jpg"  # Path to the image to be segmented
