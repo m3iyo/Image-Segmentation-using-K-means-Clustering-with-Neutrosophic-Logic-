@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-import PIL as Image
+from PIL import Image
 
 def grayscale_conversion(image_path):
   image = cv2.imread(image_path)
@@ -76,39 +76,54 @@ def segment_image(refined_cluster_assignments):
 
 def image_segmentation(image_path, k, min_cluster_size):
     try:
-        image = Image.open(image_path).convert("RGB")
+        # Open the image using Pillow
+        image = Image.open(image_path)
+
+        # Convert the image to RGB format if it's not already
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+
+        # Convert the image to a NumPy array
         image_np = np.array(image)
 
+        # Convert the image to grayscale
         gray_image = cv2.cvtColor(image_np, cv2.COLOR_RGB2GRAY)
         mean_image = gray_image / 255.0
 
+        # Calculate falsity and indeterminacy values
         falsity_image = neutrosophic_falsity(mean_image)
 
         std_image = np.std(image_np, axis=-1) / 255.0
         diff_image = np.abs(mean_image - std_image)
+        indeterminacy_image = (std_image * diff_image) / (np.maximum(std_image, diff_image) + 1e-8)
 
-        # Add a small epsilon value to prevent division by zero
-        epsilon = 1e-8
-        indeterminacy_image = (std_image * diff_image) / (np.maximum(std_image, diff_image) + epsilon)
-
+        # Perform neutrosophic clustering
         cluster_assignments = neutrosophic_clustering(mean_image, falsity_image, indeterminacy_image, k)
+
+        # Refine clusters based on minimum cluster size
         refined_cluster_assignments = refine_clusters(cluster_assignments, min_cluster_size)
+
+        # Segment the image based on refined cluster assignments
         segmented_image = segment_image(refined_cluster_assignments)
 
-        segmented_image_gray = cv2.cvtColor(segmented_image, cv2.COLOR_BGR2GRAY)
+        # Convert the segmented image to black and white
+        segmented_image = cv2.cvtColor(segmented_image, cv2.COLOR_BGR2GRAY)
+        segmented_image = cv2.threshold(segmented_image, 127, 255, cv2.THRESH_BINARY)[1]
 
+        # Display the original and segmented images
         plt.figure(figsize=(10, 5))
         plt.subplot(1, 2, 1)
         plt.imshow(image_np)
         plt.title("Original Image")
 
         plt.subplot(1, 2, 2)
-        plt.imshow(segmented_image_gray, cmap="gray")
+        plt.imshow(segmented_image, cmap="gray")
         plt.title("Segmented Image")
 
         plt.show()
     except FileNotFoundError as e:
         print(f"Error opening image file: {e}")
+
 
 if __name__ == "__main__":
   image_path = "image.jpg"  # Path to the image to be segmented
