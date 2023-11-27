@@ -106,8 +106,15 @@ def image_segmentation(image_path, k, min_cluster_size):
         # Segment the image based on refined cluster assignments
         segmented_image = segment_image(refined_cluster_assignments)
 
+        # Check the number of channels in the segmented image
+        if segmented_image.shape[2] == 1:
+            # Image already has one channel (grayscale), skip conversion
+            pass
+        else:
+            # Convert the segmented image to grayscale
+            segmented_image = cv2.cvtColor(segmented_image, cv2.COLOR_BGR2GRAY)
+
         # Convert the segmented image to black and white
-        segmented_image = cv2.cvtColor(segmented_image, cv2.COLOR_BGR2GRAY)
         segmented_image = cv2.threshold(segmented_image, 127, 255, cv2.THRESH_BINARY)[1]
 
         # Display the original and segmented images
