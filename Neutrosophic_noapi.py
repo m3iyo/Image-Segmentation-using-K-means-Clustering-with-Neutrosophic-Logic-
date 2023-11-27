@@ -86,7 +86,10 @@ def image_segmentation(image_path, k, min_cluster_size):
 
         std_image = np.std(image_np, axis=-1) / 255.0
         diff_image = np.abs(mean_image - std_image)
-        indeterminacy_image = neutrosophic_indeterminacy(mean_image, std_image, diff_image)
+
+        # Add a small epsilon value to prevent division by zero
+        epsilon = 1e-8
+        indeterminacy_image = (std_image * diff_image) / (np.maximum(std_image, diff_image) + epsilon)
 
         cluster_assignments = neutrosophic_clustering(mean_image, falsity_image, indeterminacy_image, k)
         refined_cluster_assignments = refine_clusters(cluster_assignments, min_cluster_size)
