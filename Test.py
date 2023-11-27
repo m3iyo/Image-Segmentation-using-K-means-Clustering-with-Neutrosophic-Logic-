@@ -42,6 +42,10 @@ def kmeans_plus_plus(data, k):
                 centroid_index = index
                 break
 
+        # Check if centroid index is within valid range
+        if centroid_index >= len(data):
+            centroid_index = len(data) - 1
+
         centroids.append(data[centroid_index])
 
     return np.array(centroids), np.argmin(distances, axis=-1)
