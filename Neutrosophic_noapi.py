@@ -95,13 +95,15 @@ def image_segmentation(image_path, k, min_cluster_size):
         refined_cluster_assignments = refine_clusters(cluster_assignments, min_cluster_size)
         segmented_image = segment_image(refined_cluster_assignments)
 
+        segmented_image_gray = cv2.cvtColor(segmented_image, cv2.COLOR_BGR2GRAY)
+
         plt.figure(figsize=(10, 5))
         plt.subplot(1, 2, 1)
         plt.imshow(image_np)
         plt.title("Original Image")
 
         plt.subplot(1, 2, 2)
-        plt.imshow(segmented_image, cmap="viridis")
+        plt.imshow(segmented_image_gray, cmap="gray")
         plt.title("Segmented Image")
 
         plt.show()
