@@ -107,8 +107,8 @@ def image_segmentation(image_path, k, min_cluster_size):
         segmented_image = segment_image(refined_cluster_assignments)
 
         # Check the number of channels in the segmented image
-        if segmented_image.shape[2] == 1:
-            # Image already has one channel (grayscale), skip conversion
+        if segmented_image.shape[2] <= 1:
+            # Image has no channels or only one channel (grayscale), skip grayscale conversion
             pass
         else:
             # Convert the segmented image to grayscale
