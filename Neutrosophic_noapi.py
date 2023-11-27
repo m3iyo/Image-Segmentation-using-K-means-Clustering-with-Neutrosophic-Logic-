@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
-from matplotlib.pyplot import plt
-from PIL import Image
+import matplotlib.pyplot as plt
+import PIL as Image
 
 def grayscale_conversion(image_path):
   image = cv2.imread(image_path)
