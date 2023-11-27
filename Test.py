@@ -83,9 +83,13 @@ def segment_image(refined_cluster_assignments):
     segmented_image = np.zeros((refined_cluster_assignments.shape[0], refined_cluster_assignments.shape[1], 3), dtype=np.uint8)
 
     # Assign color values to each segment based on cluster assignments
+    cluster_colors = np.zeros((np.max(refined_cluster_assignments) + 1, 3), dtype=np.uint8)
     for cluster_index in range(np.max(refined_cluster_assignments) + 1):
+        # Generate a unique color for each cluster
+        cluster_colors[cluster_index] = np.random.randint(0, 255, size=(3,))
+
+    for cluster_index, cluster_color in enumerate(cluster_colors):
         cluster_pixels = np.where(refined_cluster_assignments == cluster_index)
-        cluster_color = np.random.randint(0, 255, size=(3,))
         segmented_image[cluster_pixels] = cluster_color
 
     return segmented_image
